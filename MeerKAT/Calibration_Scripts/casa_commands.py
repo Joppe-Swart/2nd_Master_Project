@@ -7,7 +7,7 @@ Tasks performed in casa
 
 """
 # Listobs
-listobs(vis='1529816457_sdp_l0.ms/') 
+listobs(vis='1529816457_sdp_l0.ms/', listfile='Bullet_listobs.txt') 
 
 # Hanning Smoothing
 hanningsmooth(vis='1529816457_sdp_l0.ms', outputvis='Bullet_CLuster_Hanningsmooth.ms') 
@@ -53,6 +53,14 @@ flagdata(vis='Bullet_CLuster_Hanningsmooth.ms/', mode='manual', flagbackup=True,
 
 # Setjy on the flux calibrator
 execfile('setjy_manual.py')
+
+execfile('setjy_polarisation_coefficients.py')
+setjy(vis='Bullet_CLuster_Hanningsmooth.ms',field='3C286',standard='manual',\
+      fluxdensity=[15.77,0,0,0], spix=[-0.48757786, -0.1840742, -0.03037325, 0], reffreq='1280MHz',\
+      polindex=[0.09598155, 0.02465338, -0.08372889, 0.19818536, 0], \
+      polangle=[25.48946014, 8.48508625, -11.05647654, 1.3602341, 0],\
+      usescratch=False,scalebychan=True,spw='')
+      
 #setjy(vis='Bullet_CLuster_Hanningsmooth.ms/',field='3C286',model='3C286_L.im',usescratch=False,scalebychan=True,spw='')
 
 # Initial Phase Calibration
@@ -112,23 +120,25 @@ plotms(vis='Bullet_CLuster_Hanningsmooth.G1', xaxis='time', yaxis='phase', corre
 
 # Polarization calibration (set the polarization with 3C286)
 #This does not work
-setjy(vis='Bullet_CLuster_Hanningsmooth.ms',field='3C286',standard='Perley-Butler 2017',
-      model='3C286_L.im', polindex = [9.60, 1.93e-3, -5.11e-6, 9.45e-9, 0], polangle = [25.49, 6.63e-3, 6.75e-6, 6.49e-10, 0], \
-      rotmeas = 1.50, usescratch=False,scalebychan=True,spw='')
+#setjy(vis='Bullet_CLuster_Hanningsmooth.ms',field='3C286',standard='Perley-Butler 2017',
+#      model='3C286_L.im', polindex = [9.60, 1.93e-3, -5.11e-6, 9.45e-9, 0], polangle = [25.49, 6.63e-3, 6.75e-6, 6.49e-10, 0], \
+#      rotmeas = 1.50, usescratch=False,scalebychan=True,spw='')
 
-alpha = log(15.7726/18.639)/log(1.27913/0.889997) = -0.46
-i0=15.77 # Stokes I value at 1.28 GHz
-c0= 0.086 ~ 0.099 # Fractional polarization=8.6~9.9%
-d0=33*pi/180 # polarization angle of 33 degrees converted to radians
-setjy(vis='Bullet_CLuster_Hanningsmooth.ms', field='3C286', standard='manual',\
-      spw='0', fluxdensity=[i0,0,0,0], spix=[alpha,0], reffreq='1.28GHz',\
-      polindex=[c0,0], polangle=[d0,0], scalebychan=True, usescratch=False)
+#alpha = log(15.7726/18.639)/log(1.27913/0.889997) = -0.46
+#i0=15.77 # Stokes I value at 1.28 GHz
+#c0= 0.086 ~ 0.099 # Fractional polarization=8.6~9.9%
+#d0=33*pi/180 # polarization angle of 33 degrees converted to radians
+#setjy(vis='Bullet_CLuster_Hanningsmooth.ms', field='3C286', standard='manual',\
+#      spw='0', fluxdensity=[i0,0,0,0], spix=[alpha,0], reffreq='1.28GHz',\
+#      polindex=[c0,0], polangle=[d0,0], scalebychan=True, usescratch=False)
 
-# Check if it works      
-i0=15.77 # Stokes I value for spw 0 ch 0
-p0=0.086~0.099*i0 # Fractional polarization=11.2%
-q0=p0*cos(66*pi/180) # Stokes Q for spw 0 for pang = 33 deg (Q+iU phase = 66 deg)
-u0=p0*sin(66*pi/180) # Stokes U for spw 0 for pang = 33 deg (Q+iU phase = 66 deg)
+## Check if it works      
+#i0=15.77 # Stokes I value for spw 0 ch 0
+#p0=0.086~0.099*i0 # Fractional polarization=11.2%
+#q0=p0*cos(66*pi/180) # Stokes Q for spw 0 for pang = 33 deg (Q+iU phase = 66 deg)
+#u0=p0*sin(66*pi/180) # Stokes U for spw 0 for pang = 33 deg (Q+iU phase = 66 deg)
+
+
 	
 # Solving Cross hand delays
 
@@ -138,7 +148,7 @@ gaincal(vis='Bullet_CLuster_Hanningsmooth.ms', caltable='Bullet_CLuster_Hannings
         gaintable=['Bullet_CLuster_Hanningsmooth.K0',\
                    'Bullet_CLuster_Hanningsmooth.B0',\
                    'Bullet_CLuster_Hanningsmooth.G1'],
-        gainfield=['','','3C286'], parang=True)
+        gainfield=['','',''], parang=True)
         
 
 plotms(vis='Bullet_CLuster_Hanningsmooth.Kcross',xaxis='antenna1',yaxis='delay',coloraxis='corr')
@@ -146,18 +156,18 @@ plotms(vis='Bullet_CLuster_Hanningsmooth.Kcross',xaxis='antenna1',yaxis='delay',
 # Solving Leakage terms 
 
 polcal(vis='Bullet_CLuster_Hanningsmooth.ms',caltable='Bullet_CLuster_Hanningsmooth.D1',\
-       field='non polarized field',spw='0:5~3720', refant='m014',poltype='Df',solint='inf',combine='scan',\
+       field='0647-475',spw='0:5~3720', refant='m014',poltype='Df+QU',solint='inf',combine='scan',\
        gaintable=['Bullet_CLuster_Hanningsmooth.K0',\
                   'Bullet_CLuster_Hanningsmooth.B0',\
                   'Bullet_CLuster_Hanningsmooth.G1',\
                   'Bullet_CLuster_Hanningsmooth.Kcross'],\
-                  gainfield=['','','non polarized field',''])
+                  gainfield=['','','0647-475',''])
                   
-plotms(vis='Bullet_CLuster_Hanningsmooth.D1',xaxis='chan',yaxis='amp', iteraxis='antenna',coloraxis='corr')
+plotms(vis='Bullet_CLuster_Hanningsmooth.D1',xaxis='chan',yaxis='amp', iteraxis='antenna',coloraxis='corr', field='0647-475')
 
 plotms(vis='Bullet_CLuster_Hanningsmooth.D1',xaxis='chan',yaxis='phase', iteraxis='antenna',coloraxis='corr',plotrange=[-1,-1,-180,180])
 
-plotms(vis='Bullet_CLuster_Hanningsmooth.D1',xaxis='antenna1',yaxis='amp',coloraxis='corr')
+plotms(vis='Bullet_CLuster_Hanningsmooth.D1',xaxis='antenna1',yaxis='amp',coloraxis='corr', field='0647-475')
 
 # use this for a source with unkown polarization
 
@@ -177,18 +187,20 @@ polcal(vis='Bullet_CLuster_Hanningsmooth.ms',caltable='Bullet_CLuster_Hanningsmo
                   'Bullet_CLuster_Hanningsmooth.B0',\
                   'Bullet_CLuster_Hanningsmooth.G1',\
                   'Bullet_CLuster_Hanningsmooth.Kcross',\
-                  'Bullet_CLuster_Hanningsmooth.D2'],\
-       gainfield=['','','3C286','',''])
+                  'Bullet_CLuster_Hanningsmooth.D1'],\
+       gainfield=['','','','',''])
        
 plotms(vis='Bullet_CLuster_Hanningsmooth.X1',xaxis='chan',yaxis='phase')
 
 # Scaling the amplitude gains (setting the flux of all calibrators
 
+nog een keer gaincal ie. G2 maken 
+
 myscale = fluxscale(vis='Bullet_CLuster_Hanningsmooth.ms',\
                     caltable='Bullet_CLuster_Hanningsmooth.G1',\ 
                     fluxtable='Bullet_CLuster_Hanningsmooth.fluxscale1',\ 
-                    reference=['3C286'],\
-                    transfer=['all other fields'],\
+                    reference=['06...'],\
+                    transfer=['gain calibrators'],\
                     incremental=False)
 
 plotms(vis='Bullet_CLuster_Hanningsmooth.fluxscale1',xaxis='time',yaxis='amp', correlation='X',coloraxis='baseline')
