@@ -73,18 +73,16 @@ def convert_flux_model(nu=np.linspace(0.9,2,200)*1e9 , a=1,b=0,c=0,d=0,Reffreq= 
     return fit_flux_model(nu, S , Reffreq,np.ones_like(nu),sref=1 ,order=3)
 
 #name=0408-65 epoch=2016 ra=04h08m20.4s dec=-65d45m09s a=-0.9790 b=3.3662 c=-1.1216  
-a = 1.2480
-b = -0.4507
-c = -0.1798
-d = 0.0357
+a=-0.9790
+b=3.3662
+c=-1.1216
+d=0.0861
 reffreq,fluxdensity,spix0,spix1,spix2 =  convert_flux_model(np.linspace(0.9,2,200)*1e9,a,b,c,d)
-f_cal_alt = '3C286'
+f_cal_alt = '0408-658'
 
-print(spix0, spix1, spix2, reffreq, fluxdensity)
-
-#setjy(vis='Bullet_CLuster_Hanningsmooth.ms',
-#      field=f_cal_alt,
-#      spix=[spix0, spix1, spix2, 0],
-#      fluxdensity = fluxdensity,
-#      reffreq='%f Hz'%(reffreq),
-#      standard='manual')
+setjy(vis='Bullet_Cluster_HS.ms',
+      field=f_cal_alt,
+      spix=[spix0, spix1, spix2, 0],
+      fluxdensity = fluxdensity,
+      reffreq='%f Hz'%(reffreq),
+      standard='manual')

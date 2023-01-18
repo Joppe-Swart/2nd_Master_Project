@@ -86,14 +86,14 @@ pi0, pi1, pi2, pi3 = pi/100
 a0, a1, a2, a3 = a
 
 
-setjy(vis='Bullet_CLuster_Hanningsmooth.ms',field='3C286',standard='manual',\
+setjy(vis='Bullet_Cluster_HS.ms',field='3C286',standard='manual',\
       fluxdensity=[15.77,0,0,0], spix=[spix0, spix1, spix2, 0], reffreq='1280MHz',\
       polindex=[pi0, pi1, pi2, pi3, 0],polangle=[a0, a1, a2, a3, 0],\
       usescratch=False,scalebychan=True,spw='')
       
 
 #      
-#setjy(vis='Bullet_CLuster_Hanningsmooth.ms',field='3C286',standard='manual',\
+#setjy(vis='Bullet_Cluster_HS.ms',field='3C286',standard='manual',\
 #      fluxdensity=[15.77,0,0,0], spix=[-0.48757786, -0.1840742, -0.03037325, 0], reffreq='1280MHz',\
 #      polindex=[0.09598155, 0.02465338, -0.08372889, 0.19818536, 0], \
 #      polangle=[25.48946014, 8.48508625, -11.05647654, 1.3602341, 0],\
