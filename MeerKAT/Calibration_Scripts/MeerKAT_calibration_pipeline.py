@@ -96,7 +96,7 @@ plotms(vis='Bullet_Cluster.B0/',field='0408-658', xaxis='chan',yaxis='phase',col
 	plotrange=[-1,-1,-180,180], iteraxis='antenna',\
 	showgui=False, plotfile='Calibration_Files/Bandpass/B0/Phase/phase', expformat='png', exprange='all', overwrite=True)
 
- Phase calibration 
+# Phase calibration 
 gaincal(vis='Bullet_Cluster_HS.ms/',caltable='Bullet_Cluster.G1', field='0,1,3,4',\
 	spw='0:5~3720', solint='10s',refant='m014',gaintype='G',calmode='ap',solnorm=False, \
 	gaintable=['Bullet_Cluster.K0/','Bullet_Cluster.B0/'], interp=['linear','nearest'], parang=True)
