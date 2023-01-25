@@ -1,5 +1,6 @@
 """
-Script to calculate primary beams for given frequencies
+Script to calculate primary beams for given frequencies for 
+data block II
 This script needs python 3.6 or higher.
 """
 
@@ -11,7 +12,7 @@ import os
 
 
 # Find the poorest bmaj and bmin from all the images
-def find_beam(max_beam = 10, channels = 25):
+def find_beam(sourcename, max_beam = 10, channels = 25):
     """
     Find the poorest bmaj and bmin for each channel.
     This code needs to be run where the fits files are stored
@@ -19,16 +20,19 @@ def find_beam(max_beam = 10, channels = 25):
     teller = 0
     worstbmaj = 0
     worstbmin = 0
+    worstbpa = 0
     allbmaj = []
     allbmin = []
     failedchannels = []
+    allbpa = []
 
     for i in range(channels):
         print(f'finding beam for channel {i}')
-        Q_image = f"BC_III_QU-{i:04d}-Q-image.fits"
+        Q_image = f"{sourcename}-{i:04d}-Q-image.fits"
         with fits.open(Q_image) as hdu:
             bmaj = hdu[0].header['BMAJ']*3600 # convert deg to arcsec
             bmin = hdu[0].header['BMIN']*3600 # convert deg to arcsec
+            bpa = hdu[0].header['BPA']
 
             if bmaj < 0.8 or bmin < 0.8:
                 # We don't get sub-arcsec resolution, so likely the image is empty
@@ -40,38 +44,44 @@ def find_beam(max_beam = 10, channels = 25):
                     worstbmaj = bmaj
                 if bmin > worstbmin:
                     worstbmin = bmin
+                if bpa > worstbpa:
+                    worstbpa = bpa
             print(f"channel {i} has the following axis: bmaj = {bmaj} and bmin = {bmin}")
 
             allbmaj.append(bmaj)
             allbmin.append(bmin)
+            allbpa.append(bpa)
         teller += 1
 
-    plt.plot(range(0,teller),allbmaj,label='Bmaj')
-    plt.plot(range(0,teller),allbmin,label='Bmin')
+    plt.plot(range(0,teller),allbmaj,'b.', label='Bmaj')
+    plt.plot(range(0,teller),allbmin,'r.', label='Bmin')
     plt.xlabel('Channel')
     plt.ylabel('Beam size (arcsec)')
     plt.title('beam sizes')
     plt.legend()
     plt.savefig('all_beams.png')
     plt.close()
+    print(f'all major beams are {allbmaj}')
+
 
     print(f"The failled channels are {failedchannels}")
-
-    return worstbmaj, worstbmin, failedchannels
+    np.save(f'{sourcename}_failedchannels.npy', failedchannels)
+    return worstbmaj, worstbmin, worstbpa, failedchannels
 
 
 # Convolve each model to the same primary beam
-def convolve_beam(channels = 25, enlrgfac = 1.2):
+def convolve_beam(sourcename, channels = 25, enlrgfac = 1.05):
     """
     Make all images the same resolution
     """
-    bmaj, bmin, failedchannels = find_beam()
-    print(f"All channels will be convolved to the same resolution: bmaj = {bmaj} and bmin = {bmin}.")
+    bmaj, bmin, bpa, failedchannels = find_beam(sourcename)
+    print(f"All channels will be convolved to the same resolution: bmaj = {bmaj} and bmin = {bmin} and bpa = {bpa}.")
 
     bmaj *= enlrgfac
+    bmin *= enlrgfac
     ### CIRCULAR RESOLUTION
-    bmin = bmaj 
-    bpa = 0
+#    bmin = bmaj 
+#    bpa = 0
 
     teller = 0
     for i in range(channels):
@@ -81,9 +91,9 @@ def convolve_beam(channels = 25, enlrgfac = 1.2):
         if teller == channels:
             break
         print(f"smoothing channel {teller}")
-        Q_image = f"BC_III_QU-{teller:04d}-Q-image.fits"
-        U_image = f"BC_III_QU-{teller:04d}-U-image.fits"
-        I_image = f"BC_III_I-{teller:04d}-image.fits"
+        Q_image = f"{sourcename}-{teller:04d}-Q-image.fits"
+        U_image = f"{sourcename}-{teller:04d}-U-image.fits"
+        I_image = f"{sourcename}-{teller:04d}-image.fits"
 
         imsmooth(imagename=Q_image,kernel='gauss'
                 ,major='%.2f'%(bmaj)+'arcsec',minor='%.2f'%(bmin)+'arcsec'
@@ -107,8 +117,8 @@ def convolve_beam(channels = 25, enlrgfac = 1.2):
         exportfits(imagename=smoothI,overwrite=True,fitsimage=fitsI)
         teller +=1
 
+convolve_beam(sourcename='BC_II', channels = 25, enlrgfac = 1.05)
 
-convolve_beam(channels = 25, enlrgfac = 1.2)
 
 
 
