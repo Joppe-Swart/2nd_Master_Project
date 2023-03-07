@@ -1,3 +1,9 @@
+"""
+author: MeerKAT colaboration and slightly adapted by Joppe Swart
+
+"""
+
+
 import numpy as np
 def casa_flux_model(lnunu0, iref, *args):
     """

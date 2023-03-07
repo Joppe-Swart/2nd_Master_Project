@@ -1,8 +1,11 @@
 """
-This script performs RM synthesis on the QU cubes for data block III
-Run in Casa
-First we make a parameter file
-Secondly we apply this file to the data
+
+Author: Joppe Swart
+Created: January 2023
+Last modified: January 2023
+Description: This script makes the parameter and invariance files needed for RM synthesis.
+             The script needs to be executed in CASA.
+
 """
 
 import matplotlib.pylab as plt
@@ -12,18 +15,25 @@ from astropy.io import fits
 from astropy import wcs
 import os
 
-def calculate_rms(sourcename, channels =25):
+def calculate_rms(channels):
     """
-    Function to calculate the rms per channel
+    calculate_rms: This function calculates the rms of all channels
+    INPUTS:
+        sourcename: Data block of interest. 
+        channels: Number of channels for which we need the rms.
+    OUTPUTS:
+        Three npy files with the noise in the stokes channels.
     """
-    all_chan = np.arange(channels)
 
+    import numpy as np
+
+    all_chan = np.arange(channels)
     all_noiseQ = np.empty(channels) 
     all_noiseU = np.empty(channels) 
     all_noiseI = np.empty(channels) 
 
     # Ignore the failed channels
-    failedchannels = np.load(f'{sourcename}_failedchannels.npy')
+    failedchannels = np.load(f'failedchannels.npy')
     
     # Use hinges-fences with fence=1.0 so we cut the highest and lowest values
     # from the img
@@ -41,11 +51,11 @@ def calculate_rms(sourcename, channels =25):
             continue
         if teller == channels:
             break
-        rmsQ = imstat(f"stokes_q/{sourcename}-{teller:04d}-Q-image-pb.smoothed.fits",
+        rmsQ = imstat(f"stokes_q/{teller:04d}-Q-image-pb.smoothed.fits",
                       algorithm=algorithm,fence=1.0,box=box)['rms'][0]
-        rmsU = imstat(f"stokes_u/{sourcename}-{teller:04d}-U-image-pb.smoothed.fits",
+        rmsU = imstat(f"stokes_u/{teller:04d}-U-image-pb.smoothed.fits",
                       algorithm=algorithm,fence=1.0,box=box)['rms'][0]
-        rmsI = imstat(f"stokes_i/{sourcename}-{teller:04d}-I-image-pb.smoothed.fits",
+        rmsI = imstat(f"stokes_i/{teller:04d}-I-image-pb.smoothed.fits",
                       algorithm=algorithm,fence=1.0,box=box)['rms'][0]
 
         if rmsQ > 2e-3 or rmsU > 2e-3: 
@@ -61,23 +71,27 @@ def calculate_rms(sourcename, channels =25):
             teller += 1
 
     failedchannels = np.sort(failedchannels)
-    np.save(f'{sourcename}_failedchannels.npy',failedchannels)
+    np.save(f'failedchannels.npy',failedchannels)
     print(f'All failed channnels are {failedchannels}')
 
-    np.save(f'{sourcename}_all_noiseQ.npy',all_noiseQ)
-    np.save(f'{sourcename}_all_noiseU.npy',all_noiseU)
-    np.save(f'{sourcename}_all_noiseI.npy',all_noiseI)
+    np.save(f'all_noiseQ.npy',all_noiseQ)
+    np.save(f'all_noiseU.npy',all_noiseU)
+    np.save(f'all_noiseI.npy',all_noiseI)
 
 
 def create_inverse_variance_weights(sourcename):
     """
-    Given the rms noise levels that were just calculated. Translate these
-    to weights.
+    create_inverse_variance_weights: This function makes an inverse weight file for all channels
+    INPUTS:
+        sourcename: Data block of interest. 
+    OUTPUTS:
+        A text file containing the invariance weight for each channel.
     """
 
+    import numpy as np
 
-    all_noiseQ = np.load(f'{sourcename}_all_noiseQ.npy')
-    all_noiseU = np.load(f'{sourcename}_all_noiseU.npy')
+    all_noiseQ = np.load(f'all_noiseQ.npy')
+    all_noiseU = np.load(f'all_noiseU.npy')
     # Remove failed channels if any
     nanmask = np.invert(np.isnan(all_noiseQ))
     
@@ -99,9 +113,16 @@ def create_inverse_variance_weights(sourcename):
             weightfile.write('\n')
     weightfile.close()
 
-
 def create_parameterfile(sourcename):
-    with open(f'{sourcename}_rmsynth.par','w') as file:
+    """
+    create_parameterfile: This function creates a parameter file for RM synthesis.
+    INPUTS:
+        sourcename: Data block of interest. 
+    OUTPUTS:
+        A text file containing the parameterds needed for RM synthesis.
+    """
+
+    with open(f'dphi5rmsynth.par','w') as file:
         # This is a comment
         file.write(r'% Parameter file for rmsynthesis python code')
         file.write('\n')
@@ -123,11 +144,11 @@ def create_parameterfile(sourcename):
 
         file.write(r'% Define the phi axis, dphi in rad/m/m')
         file.write('\n')
-        file.write(r'phi_min -10000')
+        file.write(r'phi_min -1000')
         file.write('\n')
         file.write(r'nphi 400')
         file.write('\n')
-        file.write(r'dphi 50')
+        file.write(r'dphi 5')
         file.write('\n')
         file.write('\n')
 
@@ -157,24 +178,16 @@ def create_parameterfile(sourcename):
 
         file.write(r'% output file')
         file.write('\n')
-        file.write(f'outputfn {sourcename}_rmsynth')
+        file.write(f'outputfn dphi5/rmsynth')
         file.write('\n')
         file.write('\n')
 
         file.write(r'% directory where the input fits file can be found')
         file.write('\n')
-        file.write(f'input_dir /net/rijn9/data2/swart/DATA/MeerKAT_DATA/Imaging/Block_I/')
+        file.write(f'input_dir /net/rijn9/data2/swart/DATA/MeerKAT_DATA/Imaging_final/Images/')
         file.write('\n')
-
-
-calculate_rms(sourcename = 'BC_I', channels =25)
-create_inverse_variance_weights(sourcename = 'BC_I')
-create_parameterfile(sourcename = 'BC_I')
-
-#run = "python /net/bovenrijn/data1/digennaro/software/pyrmsynth/rmsynthesis.py -s"+"BC_I_rmsynth.par"
-#os.system(run)
-
-
-
+#calculate_rms(channels=126)
+#create_inverse_variance_weights('BC')
+create_parameterfile('BC')
 
 

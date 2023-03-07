@@ -1,22 +1,32 @@
 """
-Script to calculate primary beams for given frequencies for 
-data block II
-This script needs python 3.6 or higher.
+
+Author: Joppe Swart
+Created: December 2022
+Last modified: January 2023
+Description: This script convolves all channels to the worst bmaj, bmin and bpa.
+             The script needs to be executed in CASA.
+
 """
 
-import matplotlib.pylab as plt
-import numpy as np
-from astropy.io import fits
-from astropy import wcs
-import os
 
 
-# Find the poorest bmaj and bmin from all the images
-def find_beam(sourcename, max_beam = 10, channels = 25):
+def find_beam(channels, max_beam = 10):
     """
-    Find the poorest bmaj and bmin for each channel.
-    This code needs to be run where the fits files are stored
+    find_beam: This function finds the beams of all channels
+    INPUTS:
+        channels: Number of channels for which the beam needs to be convolved.
+        max_beam: The maximum beam size in arcsec. 
+    OUTPUTS:
+        worstbmaj: Largest major beam.
+        worstbmin: Largest minor beam.
+        worstbpa: Largest Position angle.
+        failedchannels: The channels that contain a to large or to small beam.
     """
+
+    import matplotlib.pylab as plt
+    import numpy as np
+    from astropy.io import fits
+
     teller = 0
     worstbmaj = 0
     worstbmin = 0
@@ -28,7 +38,7 @@ def find_beam(sourcename, max_beam = 10, channels = 25):
 
     for i in range(channels):
         print(f'finding beam for channel {i}')
-        Q_image = f"{sourcename}-{i:04d}-Q-image.fits"
+        Q_image = f"{i:04d}-Q-image.fits"
         with fits.open(Q_image) as hdu:
             bmaj = hdu[0].header['BMAJ']*3600 # convert deg to arcsec
             bmin = hdu[0].header['BMIN']*3600 # convert deg to arcsec
@@ -61,27 +71,35 @@ def find_beam(sourcename, max_beam = 10, channels = 25):
     plt.legend()
     plt.savefig('all_beams.png')
     plt.close()
-    print(f'all major beams are {allbmaj}')
-
+    print(f'All major beams are {allbmaj}')
 
     print(f"The failled channels are {failedchannels}")
-    np.save(f'{sourcename}_failedchannels.npy', failedchannels)
+    np.save(f'failedchannels.npy', failedchannels)
     return worstbmaj, worstbmin, worstbpa, failedchannels
 
 
-# Convolve each model to the same primary beam
-def convolve_beam(sourcename, channels = 25, enlrgfac = 1.05):
+def convolve_beam(channels, enlrgfac = 1.05):
     """
-    Make all images the same resolution
+    convolve_beam: This function convolves all beams to the same (worst) resolution.
+    INPUTS:
+        channels: Number of channels we want to convolve.
+        enlrgfac: enlarge factor to prevent CASA errors.
+    OUTPUTS:
+        A smoothed casa file and an smoothed fits file for each channel and polarisation.
     """
-    bmaj, bmin, bpa, failedchannels = find_beam(sourcename)
+
+    import numpy as np
+    from astropy.io import fits
+
+    nchan = channels
+    bmaj, bmin, bpa, failedchannels = find_beam(channels, max_beam = 20)
+    bmaj = 40
+    bmin = 40
+    bpa = 0
     print(f"All channels will be convolved to the same resolution: bmaj = {bmaj} and bmin = {bmin} and bpa = {bpa}.")
 
-    bmaj *= enlrgfac
-    bmin *= enlrgfac
-    ### CIRCULAR RESOLUTION
-#    bmin = bmaj 
-#    bpa = 0
+#    bmaj *= enlrgfac
+#    bmin *= enlrgfac
 
     teller = 0
     for i in range(channels):
@@ -91,33 +109,35 @@ def convolve_beam(sourcename, channels = 25, enlrgfac = 1.05):
         if teller == channels:
             break
         print(f"smoothing channel {teller}")
-        Q_image = f"{sourcename}-{teller:04d}-Q-image.fits"
-        U_image = f"{sourcename}-{teller:04d}-U-image.fits"
-        I_image = f"{sourcename}-{teller:04d}-image.fits"
+        Q_image = f"{teller:04d}-Q-image.fits"
+        U_image = f"{teller:04d}-U-image.fits"
+        I_image = f"{teller:04d}-I-image.fits"
 
+        if not os.path.exists('res_40arcsec_test'):
+            os.mkdir('res_40arcsec_test')
         imsmooth(imagename=Q_image,kernel='gauss'
                 ,major='%.2f'%(bmaj)+'arcsec',minor='%.2f'%(bmin)+'arcsec'
-                ,pa='%.2f'%(bpa)+'deg',targetres=True,overwrite=True,outfile=f"{Q_image.split('.fits')[0]}.smoothed")
+                ,pa='%.2f'%(bpa)+'deg',targetres=True,overwrite=True,outfile=f"res_40arcsec_test/{Q_image.split('.fits')[0]}.smoothed")
         imsmooth(imagename=U_image,kernel='gauss'
                 ,major='%.2f'%(bmaj)+'arcsec',minor='%.2f'%(bmin)+'arcsec'
-                ,pa='%.2f'%(bpa)+'deg',targetres=True,overwrite=True,outfile=f"{U_image.split('.fits')[0]}.smoothed")
+                ,pa='%.2f'%(bpa)+'deg',targetres=True,overwrite=True,outfile=f"res_40arcsec_test/{U_image.split('.fits')[0]}.smoothed")
         imsmooth(imagename=I_image,kernel='gauss'
                 ,major='%.2f'%(bmaj)+'arcsec',minor='%.2f'%(bmin)+'arcsec'
-                ,pa='%.2f'%(bpa)+'deg',targetres=True,overwrite=True,outfile=f"{I_image.split('.fits')[0]}.smoothed")
+                ,pa='%.2f'%(bpa)+'deg',targetres=True,overwrite=True,outfile=f"res_40arcsec_test/{I_image.split('.fits')[0]}.smoothed")
 
         print(f"Convolving channel {teller} to fits")
-        smoothQ = f"{Q_image.split('.fits')[0]}.smoothed"
+        smoothQ = f"res_40arcsec_test/{Q_image.split('.fits')[0]}.smoothed"
         fitsQ = f"{smoothQ}.fits"
         exportfits(imagename=smoothQ,overwrite=True,fitsimage=fitsQ)
-        smoothU = f"{U_image.split('.fits')[0]}.smoothed"
+        smoothU = f"res_40arcsec_test/{U_image.split('.fits')[0]}.smoothed"
         fitsU = f"{smoothU}.fits"
         exportfits(imagename=smoothU,overwrite=True,fitsimage=fitsU)
-        smoothI = f"{I_image.split('.fits')[0]}.smoothed"
+        smoothI = f"res_40arcsec_test/{I_image.split('.fits')[0]}.smoothed"
         fitsI = f"{smoothI}.fits"
         exportfits(imagename=smoothI,overwrite=True,fitsimage=fitsI)
         teller +=1
 
-convolve_beam(sourcename='BC_II', channels = 25, enlrgfac = 1.05)
+convolve_beam(channels=126)
 
 
 
