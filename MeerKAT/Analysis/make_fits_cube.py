@@ -39,9 +39,9 @@ def make_fits_cube(channels):
 		if teller == channels:
 			break
 		print(f'appending channel {i}')
-		Q_image_hdu = fits.open(f"stokes_q_corr/{teller:04d}-Q-image-pb.smoothed.fits")[0]
-		U_image_hdu = fits.open(f"stokes_u_corr/{teller:04d}-U-image-pb.smoothed.fits")[0]
-		I_image_hdu = fits.open(f"stokes_i_corr/{teller:04d}-I-image-pb.smoothed.fits")[0]
+		Q_image_hdu = fits.open(f"DATA/stokes_q_corr/{teller:04d}-Q-image-pb.smoothed.fits")[0]
+		U_image_hdu = fits.open(f"DATA/stokes_u_corr/{teller:04d}-U-image-pb.smoothed.fits")[0]
+		I_image_hdu = fits.open(f"DATA/stokes_i_corr/{teller:04d}-I-image-pb.smoothed.fits")[0]
 
 
 		Q_hdu.append(Q_image_hdu)
@@ -50,14 +50,11 @@ def make_fits_cube(channels):
 
 		teller += 1
 
-	Q_hdu.writeto('Q_cube.fits', overwrite=True)
-	U_hdu.writeto('U_cube.fits', overwrite=True)
-	I_hdu.writeto('I_cube.fits', overwrite=True)
+	Q_hdu.writeto('DATA/Q_cube.fits', overwrite=True)
+	U_hdu.writeto('DATA/U_cube.fits', overwrite=True)
+	I_hdu.writeto('DATA/I_cube.fits', overwrite=True)
 
-make_fits_cube(125)
-hdu = fits.open('Q_cube.fits')
-data = hdu[114].data
-print(data.shape)
+make_fits_cube(126)
 
 
 
